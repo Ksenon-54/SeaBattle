@@ -7,12 +7,22 @@ class Menu:
     """
     Содержит данные для отображения "меню"(картинку, шрифт, список названий кнопок)
     """
+
+    image = pygame.image.load('sea_battle_menu.jpg')
+
     def __init__(self, screen):
-        self.image = pygame.image.load('sea_battle_menu.jpg')
         self.text = pygame.font.Font(SHRIFT, SHRIFT_SIZE)
-        self.buttons = ('Играть', 'Рекорды', 'Справка',)
+        self.button_game = self.text.render('Играть', True, 'black')
+        self.button_records = self.text.render('Рекорды', True, 'black')
+        self.button_help = self.text.render('Справка', True, 'black')
         self.screen = screen
-        self.image_rect = self.image.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+
+    def draw(self):
+        image_rect = self.image.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+        game_rect = self.button_game.get_rect(center=(WIDTH * 0.4, HEIGHT // 3))
+        records_rect = self.button_game.get_rect(center=(WIDTH * 0.4, HEIGHT * 0.5))
+        help_rect = self.button_game.get_rect(center=(WIDTH * 0.4, HEIGHT * 0.7))
+        return image_rect, game_rect, records_rect, help_rect
 
 
 class Game:
@@ -26,14 +36,27 @@ class Manager:
     """
     Управляет состоянием игры, осушествляет переключение между "меню" и "игровым сеансом"
     """
-    def __init__(self, screen):
-        self.menu = Menu(screen)
+    def __init__(self):
+        self.artist = Draw()
+        self.menu = Menu(self.artist.screen)
 
     def draw(self):
-        self.menu.screen.blit(self.menu.image, self.menu.image_rect)
-        text_render = self.menu.text.render(self.menu.buttons[0], True, 'black')
-        text_rect = text_render.get_rect(center=(WIDTH*0.4, HEIGHT // 3))
-        self.menu.screen.blit(text_render, text_rect)
+        self.artist.draw(self.menu)
+
+
+class Draw:
+    """
+    Занимается отрисовкой игры
+    """
+    def __init__(self):
+        self.screen = pygame.display.set_mode(SCREEN_SIZE)
+
+    def draw(self, other):
+        rect_list = other.draw()
+        self.screen.blit(other.image, rect_list[0])
+        self.screen.blit(other.button_game, rect_list[1])
+        self.screen.blit(other.button_records, rect_list[2])
+        self.screen.blit(other.button_help, rect_list[3])
 
 
 class Round:
@@ -85,13 +108,6 @@ class PlayerAI(Player):
     pass
 
 
-class Draw:
-    """
-    Занимается отрисовкой игры
-    """
-    pass
-
-
 def main():
     """
     Содержит главный цикл игры, инициализирует дисплей pygame
@@ -100,8 +116,7 @@ def main():
     pygame.display.init()
     pygame.font.init()
     pygame.display.set_caption('Sea Battle')
-    screen = pygame.display.set_mode(SCREEN_SIZE)
-    manager = Manager(screen)
+    manager = Manager()
     finished = False
     clock = pygame.time.Clock()
     while not finished:
