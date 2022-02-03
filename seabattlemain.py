@@ -7,35 +7,60 @@ class Menu:
     """
     Содержит данные для отображения "меню"(картинку, шрифт, список названий кнопок)
     """
-    buttons_names = ['Играть']  # ('Играть', 'Рекорды', 'Справка')
+    buttons_names = ('Играть', 'Рекорды', 'Справка')
     image = pygame.image.load('sea_battle_menu.jpg')
 
-    def __init__(self):
-        self.image_rect = self.image.get_rect(center=(WIDTH // 2, HEIGHT // 2))
-        self.buttons = [Button(button) for button in self.buttons_names]
+    def __init__(self, name='welcome'):
+        self.name = name
+        if self.name == 'Рекорды':
+            pass
+        elif self.name == 'Справка':
+            pass
+        else:
+            self.image_rect = self.image.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+            self.buttons = [Button(button, i) for i, button in enumerate(self.buttons_names)]
+
+    def check_buttons(self, mouse_pos):
+        for button in self.buttons:
+            if button.coliide_mouse(mouse_pos):
+                if button.name == self.buttons_names[0]:
+                    return Game()
+                elif button.name == self.buttons_names[1]:
+                    return Menu(name=button.name)
 
 
 class Game:
     """
     Содержит механику игры, логику исполнения правил
     """
-    pass
+
+    background = pygame.image.load('background.jpg')
+
+    def __init__(self):
+        pass
 
 
 class Button:
-    def __init__(self, name, color='black'):
+    def __init__(self, name: str, index: int, color='black'):
         self.name = name
         self.color = color
         self.text = pygame.font.Font(SHRIFT, SHRIFT_SIZE)
-        self.button_text = self.text.render(self.name, True, self.color)
-        self.button_rect = self.button_text.get_rect(center=(WIDTH * 0.4, HEIGHT // 3))
+        self.index = index
+
+    def coliide_mouse(self, mouse_pos):
+        return pygame.Rect.collidepoint(self.rect_text(), *mouse_pos)
 
     def set_color(self, mouse_pos):
-        if pygame.Rect.collidepoint(self.button_rect, *mouse_pos):
+        if self.coliide_mouse(mouse_pos):
             self.color = 'red'
-            print('set color: ', self.color)
         else:
             self.color = 'black'
+
+    def render_text(self):
+        return self.text.render(self.name, True, self.color)
+
+    def rect_text(self):
+        return self.render_text().get_rect(center=(WIDTH * 0.4, HEIGHT // 3 + 40 * self.index))
 
 
 class Manager:
@@ -61,7 +86,6 @@ class Manager:
             mouse_pos = pygame.mouse.get_pos()
             for button in self.menu.buttons:
                 button.set_color(mouse_pos)
-                # print('manager: ', button.color)
         return done
 
     def handle_events(self, events):
@@ -72,9 +96,9 @@ class Manager:
         for event in events:
             if event.type == pygame.QUIT:
                 done = True
-            # elif event.type == pygame.MOUSEBUTTONDOWN:
-            #     if event.button == 1:
-            #         self.gun.activate()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    game = self.menu.check_buttons(pygame.mouse.get_pos())
             # elif event.type == pygame.MOUSEBUTTONUP:
             #     if event.button == 1:
             #         self.balls.append(self.gun.strike())
@@ -93,8 +117,7 @@ class Draw:
         if isinstance(other, Menu):
             self.screen.blit(other.image, other.image_rect)
             for button in other.buttons:
-                print('draw')
-                self.screen.blit(button.button_text, button.button_rect)
+                self.screen.blit(button.render_text(), button.rect_text())
 
 
 class Round:
