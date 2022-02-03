@@ -7,22 +7,12 @@ class Menu:
     """
     Содержит данные для отображения "меню"(картинку, шрифт, список названий кнопок)
     """
-
+    buttons_names = ['Играть']  # ('Играть', 'Рекорды', 'Справка')
     image = pygame.image.load('sea_battle_menu.jpg')
 
-    def __init__(self, screen):
-        self.text = pygame.font.Font(SHRIFT, SHRIFT_SIZE)
-        self.button_game = self.text.render('Играть', True, 'black')
-        self.button_records = self.text.render('Рекорды', True, 'black')
-        self.button_help = self.text.render('Справка', True, 'black')
-        self.screen = screen
-
-    def draw(self):
-        image_rect = self.image.get_rect(center=(WIDTH // 2, HEIGHT // 2))
-        game_rect = self.button_game.get_rect(center=(WIDTH * 0.4, HEIGHT // 3))
-        records_rect = self.button_game.get_rect(center=(WIDTH * 0.4, HEIGHT * 0.5))
-        help_rect = self.button_game.get_rect(center=(WIDTH * 0.4, HEIGHT * 0.7))
-        return image_rect, game_rect, records_rect, help_rect
+    def __init__(self):
+        self.image_rect = self.image.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+        self.buttons = [Button(button) for button in self.buttons_names]
 
 
 class Game:
@@ -32,16 +22,64 @@ class Game:
     pass
 
 
+class Button:
+    def __init__(self, name, color='black'):
+        self.name = name
+        self.color = color
+        self.text = pygame.font.Font(SHRIFT, SHRIFT_SIZE)
+        self.button_text = self.text.render(self.name, True, self.color)
+        self.button_rect = self.button_text.get_rect(center=(WIDTH * 0.4, HEIGHT // 3))
+
+    def set_color(self, mouse_pos):
+        if pygame.Rect.collidepoint(self.button_rect, *mouse_pos):
+            self.color = 'red'
+            print('set color: ', self.color)
+        else:
+            self.color = 'black'
+
+
 class Manager:
     """
     Управляет состоянием игры, осушествляет переключение между "меню" и "игровым сеансом"
     """
     def __init__(self):
         self.artist = Draw()
-        self.menu = Menu(self.artist.screen)
+        self.menu = Menu()
 
-    def draw(self):
-        self.artist.draw(self.menu)
+    def draw(self, other):
+        self.artist.draw(other)
+
+    def process(self, py_events):
+        """
+        Запускает методы и обработчик событий
+        :param py_events: очередь событий pygame
+        :return: True если выход
+        """
+        done = self.handle_events(py_events)
+        self.draw(self.menu)
+        if pygame.mouse.get_focused():
+            mouse_pos = pygame.mouse.get_pos()
+            for button in self.menu.buttons:
+                button.set_color(mouse_pos)
+                # print('manager: ', button.color)
+        return done
+
+    def handle_events(self, events):
+        """
+        Обрабатывает события мыши, клавиатуры
+        """
+        done = False
+        for event in events:
+            if event.type == pygame.QUIT:
+                done = True
+            # elif event.type == pygame.MOUSEBUTTONDOWN:
+            #     if event.button == 1:
+            #         self.gun.activate()
+            # elif event.type == pygame.MOUSEBUTTONUP:
+            #     if event.button == 1:
+            #         self.balls.append(self.gun.strike())
+            #         self.score_t.b_used += 1
+        return done
 
 
 class Draw:
@@ -52,11 +90,11 @@ class Draw:
         self.screen = pygame.display.set_mode(SCREEN_SIZE)
 
     def draw(self, other):
-        rect_list = other.draw()
-        self.screen.blit(other.image, rect_list[0])
-        self.screen.blit(other.button_game, rect_list[1])
-        self.screen.blit(other.button_records, rect_list[2])
-        self.screen.blit(other.button_help, rect_list[3])
+        if isinstance(other, Menu):
+            self.screen.blit(other.image, other.image_rect)
+            for button in other.buttons:
+                print('draw')
+                self.screen.blit(button.button_text, button.button_rect)
 
 
 class Round:
@@ -117,14 +155,11 @@ def main():
     pygame.font.init()
     pygame.display.set_caption('Sea Battle')
     manager = Manager()
-    finished = False
     clock = pygame.time.Clock()
+    finished = False
     while not finished:
         clock.tick(FPS)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                finished = True
-        manager.draw()
+        finished = manager.process(pygame.event.get())
         pygame.display.update()
 
     pygame.quit()
